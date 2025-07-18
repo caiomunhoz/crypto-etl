@@ -10,8 +10,9 @@ def get_crypto_prices():
     params = {
         'ids': 'bitcoin,ethereum,solana',
         'vs_currencies': 'usd',
-        'precision': 2,
-        'include_24h_change': True
+        'include_market_cap': 'true',
+        'include_24hr_vol': 'true',
+        'precision': 2
     }
     URL = 'https://api.coingecko.com/api/v3/simple/price'
 
