@@ -1,0 +1,27 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+.env
+.venv/
+venv/
+
+# Virtual environments
+.venv
+
+# Airflow
+airflow.db
+airflow.cfg
+unittests.cfg
+logs/
+dags/__pycache__/
+plugins/__pycache__
+*.pid
+*.err
+*.out
+
+# UV
+uv.lock
