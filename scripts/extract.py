@@ -3,6 +3,7 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
+from .utils import format_timestamp_to_file_name
 
 def get_crypto_prices():
     headers = {
@@ -32,8 +33,10 @@ def get_crypto_prices():
 
 def save_as_json_file(response):
     data = response.json()
-    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    file_path = Path(f'data/raw/{timestamp}.json')
+    formatted_timestamp = format_timestamp_to_file_name(datetime.now())
+
+    file_path = Path(f'data/raw/{formatted_timestamp}.json')
+    file_path.parent.mkdir(parents=True, exist_ok=True)
 
     with open(file_path, 'w') as json_file:
         json.dump(data, json_file)
