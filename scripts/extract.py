@@ -2,6 +2,7 @@ import requests
 import json
 import logging
 from datetime import datetime
+from pathlib import Path
 
 def get_crypto_prices():
     headers = {
@@ -32,9 +33,15 @@ def get_crypto_prices():
 def save_as_json_file(response):
     data = response.json()
     timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    file_path = Path(f'data/raw/{timestamp}.json')
 
-    with open(f'data/raw/{timestamp}.json', 'w') as json_file:
+    with open(file_path, 'w') as json_file:
         json.dump(data, json_file)
 
-crypto_prices = get_crypto_prices()
-save_as_json_file(crypto_prices)
+    return str(file_path)
+
+def run():
+    crypto_prices = get_crypto_prices()
+    json_file_path = save_as_json_file(crypto_prices)
+
+    return json_file_path
