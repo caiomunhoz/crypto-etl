@@ -1,5 +1,4 @@
-from airflow.sdk.decorators import DAG
-
+from airflow.sdk import DAG
 from airflow.operators.python import PythonOperator
 from pendulum import datetime
 
@@ -12,12 +11,6 @@ with DAG(
     schedule='@hourly',
     start_date=datetime(2025, 9, 1)
 ):
-    get_crypto_data = HttpOperator(
-        task_id='get_crypto_data',
-        endpoint='get'
-    )
-
-
     extract = PythonOperator(
         task_id='extract_task',
         python_callable=run_extract
