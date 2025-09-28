@@ -1,13 +1,25 @@
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from .transform import serialize_as_parquet
 
-def upload_to_s3(ti):
-    data = ti.xcom_pull(key='crypto_data', task_ids='get_crypto_data')
-
-    s3_hook = S3Hook(aws_conn_id='aws_conn')
-
-    s3_hook.load_string(
-        string_data=data,
-        key='raw/data.json',
-        bucket_name='crypto-pipeline-caiomunhoz'
-    )
+class S3Loader():
+    def __init__(self, aws_conn_id, bucket_name, file_path, data):
+        self.bucket_name = bucket_name
+        self.s3_hook = S3Hook(aws_conn_id=aws_conn_id)
+        self.file_path = file_path
+        self.data = data
     
+    def load_raw_data(self):
+        self.s3_hook.load_string(
+            string_data=self.data,
+            key=self.file_path,
+            bucket_name=self.bucket_name
+        )
+
+    def load_transformed_data(self):
+        serialized_parquet = serialize_as_parquet(self.data)
+
+        self.s3_hook.load_bytes(
+            bytes_data=serialized_parquet,
+            key=self.file_path,
+            bucket_name=self.bucket_name
+        )
