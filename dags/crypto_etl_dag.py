@@ -1,5 +1,6 @@
 from airflow.decorators import dag, task
 from airflow.sdk import Variable
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from pendulum import datetime
 
 from utils.coingecko_client import fetch_raw_crypto_data
@@ -35,7 +36,7 @@ def crypto_etl_dag():
     @task
     def normalize_raw_crypto_data(ti):
         strf_raw_crypto_data = ti.xcom_pull(key='strf_raw_crypto_data', task_ids='fetch_crypto_data')
-        timestamp = ti.start_date.strftime('%Y-%m-%d %H-%M')
+        timestamp = ti.start_date
 
         normalized_data = normalize_raw_data(strf_raw_crypto_data, timestamp)
         ti.xcom_push(key='normalized_crypto_data', value=normalized_data)
@@ -52,6 +53,12 @@ def crypto_etl_dag():
             data=ti.xcom_pull(key='normalized_crypto_data', task_ids='normalize_raw_crypto_data')  
         ).load_transformed_data()
 
-    fetch_crypto_data() >> upload_raw_data_to_s3() >> normalize_raw_crypto_data() >> upload_transformed_data_to_s3()
+    create_db_schema = SQLExecuteQueryOperator(
+        task_id='create_db_schema',
+        conn_id='postgres_conn',
+        sql=f'sql/create_db_schema.sql'
+    )
+
+    fetch_crypto_data() >> upload_raw_data_to_s3() >> normalize_raw_crypto_data() >> upload_transformed_data_to_s3() >> create_db_schema
 
 crypto_etl_dag()

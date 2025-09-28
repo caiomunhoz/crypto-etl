@@ -12,7 +12,8 @@ class S3Loader():
         self.s3_hook.load_string(
             string_data=self.data,
             key=self.file_path,
-            bucket_name=self.bucket_name
+            bucket_name=self.bucket_name,
+            replace=True
         )
 
     def load_transformed_data(self):
@@ -21,5 +22,6 @@ class S3Loader():
         self.s3_hook.load_bytes(
             bytes_data=serialized_parquet,
             key=self.file_path,
-            bucket_name=self.bucket_name
+            bucket_name=self.bucket_name,
+            replace=True
         )
