@@ -2,14 +2,14 @@ from airflow.sdk import Variable
 import requests
 import logging
 
-def fetch_raw_crypto_data():
+def fetch_raw_crypto_data(coins) -> str | None:
     headers = {
         'accept': 'application/json',
     }
 
     params = {
         'vs_currencies': 'usd',
-        'ids': 'bitcoin,ethereum,solana',
+        'ids': ','.join(coins),
         'include_market_cap': 'true',
         'include_24hr_vol': 'true',
         'precision': 2

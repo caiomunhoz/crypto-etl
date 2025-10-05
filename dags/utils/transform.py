@@ -2,7 +2,7 @@ import pandas as pd
 from io import BytesIO
 import json
 
-def normalize_raw_data(strf_raw_crypto_data, timestamp):
+def normalize_raw_data(strf_raw_crypto_data, timestamp) -> tuple[list, list]:
     raw_crypto_data = json.loads(strf_raw_crypto_data)
 
     normalized_data = []
@@ -17,7 +17,6 @@ def normalize_raw_data(strf_raw_crypto_data, timestamp):
         })
 
     return normalized_data
-
 def serialize_as_parquet(normalized_crypto_data):
     buffer = BytesIO()
 

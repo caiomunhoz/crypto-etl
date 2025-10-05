@@ -1,25 +1,25 @@
-CREATE TABLE IF NOT EXISTS coins(
+CREATE TABLE IF NOT EXISTS dim_coins(
     id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    name VARCHAR(255) NOT NULL
+    name VARCHAR(255) NOT NULL UNIQUE
 );
 
-CREATE TABLE IF NOT EXISTS times(
+CREATE TABLE IF NOT EXISTS dim_times(
     id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     timestamp TIMESTAMP NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS market_data(
-    time_id INT NOT NULL REFERENCES times (id),
-    coin_id INT NOT NULL REFERENCES coins (id),
+CREATE TABLE IF NOT EXISTS fact_market_data(
+    time_id INT NOT NULL REFERENCES dim_times (id),
+    coin_id INT NOT NULL REFERENCES dim_coins (id),
     PRIMARY KEY (time_id, coin_id),
     price_usd NUMERIC(18, 6) NOT NULL,
     volume_usd_24h NUMERIC(18, 6) NOT NULL,
     market_cap_usd NUMERIC(18, 6) NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS indicators(
-    time_id INT NOT NULL REFERENCES times (id),
-    coin_id INT NOT NULL REFERENCES coins (id),
+CREATE TABLE IF NOT EXISTS fact_market_features(
+    time_id INT NOT NULL REFERENCES dim_times (id),
+    coin_id INT NOT NULL REFERENCES dim_coins (id),
     PRIMARY KEY (time_id, coin_id),
     price_changes_pct_1h NUMERIC(6, 3),
     price_changes_pct_12h NUMERIC(6, 3),
@@ -28,4 +28,3 @@ CREATE TABLE IF NOT EXISTS indicators(
     moving_avg_24h NUMERIC(18, 6),
     moving_avg_7d NUMERIC(18, 6)
 );
-
