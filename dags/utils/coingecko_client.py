@@ -2,7 +2,7 @@ from airflow.sdk import Variable
 import requests
 import logging
 
-def fetch_raw_crypto_data(coins) -> str | None:
+def fetch_raw_crypto_data(coins: list[str]) -> str | None:
     headers = {
         'accept': 'application/json',
     }
@@ -12,7 +12,7 @@ def fetch_raw_crypto_data(coins) -> str | None:
         'ids': ','.join(coins),
         'include_market_cap': 'true',
         'include_24hr_vol': 'true',
-        'precision': 2
+        'precision': 4
     }
 
     ENDPOINT = Variable.get('coingecko_endpoint')

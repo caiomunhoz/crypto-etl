@@ -1,0 +1,1 @@
+SELECT * FROM dim_coins WHERE NAME = ANY(%s);
