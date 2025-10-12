@@ -1,8 +1,7 @@
 import json
 import pandas as pd
-from pendulum import DateTime, now
+from pendulum import DateTime
 from io import BytesIO
-
 
 def normalize_raw_data(strf_raw_crypto_data: str, timestamp: DateTime) -> list[dict]:
     raw_crypto_data = json.loads(strf_raw_crypto_data)
@@ -19,6 +18,7 @@ def normalize_raw_data(strf_raw_crypto_data: str, timestamp: DateTime) -> list[d
         })
 
     return normalized_data
+
 def serialize_as_parquet(normalized_crypto_data: list[dict]) -> bytes:
     buffer = BytesIO()
 

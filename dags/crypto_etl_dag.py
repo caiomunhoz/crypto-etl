@@ -1,6 +1,7 @@
 from airflow.decorators import dag, task
 from airflow.sdk import Variable
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
+
 from pendulum import datetime
 
 from utils.coingecko_client import fetch_raw_crypto_data
@@ -73,15 +74,15 @@ def crypto_etl_dag():
     create_db_schema = SQLExecuteQueryOperator(
         task_id='create_db_schema',
         conn_id=PG_CONN_ID,
-        sql='sql/create_db_schema.sql',
-        autocommit=True
+        autocommit=True,
+        sql='sql/create_db_schema.sql'
     )
 
     load_dimensions = SQLExecuteQueryOperator(
         task_id='load_dimensions',
         conn_id=PG_CONN_ID,
-        sql='sql/load_dimensions.sql',
         autocommit=True,
+        sql='sql/load_dimensions.sql',
         params = {'coins': COINS},
         parameters = {'timestamp': '{{ ti.xcom_pull(key="dag_run_datetime", task_ids="get_run_datetime")["timestamp"] }}'}
     )
@@ -89,41 +90,45 @@ def crypto_etl_dag():
     @task
     def get_dimensions(ti):
         dag_run_datetime = ti.xcom_pull(key="dag_run_datetime", task_ids="get_run_datetime")
-
+    
         pg_client = PostgresClient(postgres_conn_id=PG_CONN_ID)
 
         dim_coins = pg_client.get_records(
-            'SELECT * FROM dim_coins WHERE NAME = ANY(%s)',
-            parameters=(COINS,)
+            'sql/get_dim_coins.sql',
+            parameters={'coins': COINS}
         )
         dim_times = pg_client.get_records(
-            f"SELECT id, TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI') AS timestamp FROM dim_times WHERE timestamp = '{dag_run_datetime['timestamp']}'",
-            # parameters=DAG_RUN_START_DATETIME_STR
+            'sql/get_dim_times.sql',
+            parameters={'timestamp': dag_run_datetime['timestamp']}
         )
 
-        ti.xcom_push(key='dim_coins', value=dim_coins)
-        ti.xcom_push(key='dim_times', value=dim_times)
+        ti.xcom_push(
+            key='dimensions',
+            value={'coins': dim_coins, 'times': dim_times}
+        )
 
     @task
     def merge_normalized_data_with_dimensions(ti):
         normalized_data = ti.xcom_pull(key='normalized_crypto_data', task_ids='normalize_raw_crypto_data')  
-        dim_coins = ti.xcom_pull(key='dim_coins', task_ids='get_dimensions')
-        dim_times = ti.xcom_pull(key='dim_times', task_ids='get_dimensions')
-
-        market_data = merge_with_dimensions(normalized_data, dim_coins, dim_times)
-
-        print(market_data)
+        dimensions = ti.xcom_pull(key='dimensions', task_ids='get_dimensions')
+        
+        market_data = merge_with_dimensions(normalized_data, dimensions['coins'], dimensions['times'])
 
         ti.xcom_push(key='market_data', value=market_data)
 
     @task
     def load_fact_market_data(ti):
-        market_data = ti.xcom_pull(key='market_data', task_ids='merge_normalized_data_with_dimensions')
-
         PostgresClient(postgres_conn_id=PG_CONN_ID).insert(
             table='fact_market_data',
-            records=market_data
+            records=ti.xcom_pull(key='market_data', task_ids='merge_normalized_data_with_dimensions')
         )
+    
+    load_fact_market_features = SQLExecuteQueryOperator(
+        task_id='load_fact_market_features',
+        conn_id=PG_CONN_ID,
+        autocommit=True,
+        sql='sql/load_fact_market_features.sql'
+    )
 
     (   
         [get_run_datetime(), fetch_crypto_data()] >>
@@ -134,7 +139,8 @@ def crypto_etl_dag():
         load_dimensions >>
         get_dimensions() >>
         merge_normalized_data_with_dimensions() >>
-        load_fact_market_data()
+        load_fact_market_data() >>
+        load_fact_market_features
     )
 
 crypto_etl_dag()

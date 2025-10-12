@@ -1,1 +1,1 @@
-SELECT * FROM dim_coins WHERE NAME = ANY(%s);
+SELECT * FROM dim_coins WHERE name = ANY(%(coins)s);
