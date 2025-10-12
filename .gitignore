@@ -25,6 +25,3 @@ plugins/__pycache__
 
 # UV
 uv.lock
-
-data/
-db/
