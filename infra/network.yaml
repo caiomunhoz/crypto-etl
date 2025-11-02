@@ -1,0 +1,17 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Resources:
+
+
+  AirflowLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: airflow-lb
+      Type: application
+      Scheme: internet-facing
+  
+  HTTPListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      Port: 80
+      Protocol: HTTP
