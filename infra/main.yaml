@@ -5,46 +5,97 @@ Parameters:
     Type: String
 
   AirflowDBUsername:
+    Default: airflow
     Type: String
+    MinLength: 1
+    MaxLength: 64
+    AllowedPattern: '^[a-zA-Z_][a-zA-Z0-9_]*$'
+    ConstraintDescription: >-
+      Must begin with a letter or underscore and contain only letters, 
+      numbers, or underscores.
 
   DataWarehouseUsername:
+    Default: crypto_warehouse
     Type: String
+    MinLength: 1
+    MaxLength: 64
+    AllowedPattern: '^[a-zA-Z_][a-zA-Z0-9_]*$'
+    ConstraintDescription: >-
+      Must begin with a letter or underscore and contain only letters, 
+      numbers, or underscores.
   
-  DBInstanceClass:
+  AirflowDBInstanceID:
+    Default: airflow-metadata-db
     Type: String
+    MinLength: 1
+    MaxLength: 63
+    AllowedPattern: '^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]$'
+    ConstraintDescription: >-
+      Must begin with a letter and must not end with a hyphen or contain two
+      consecutive hyphens.
+
+  AllocatedStorageAirflowDB:
+    Default: 20
+    Description: The size of the database (GiB)
+    Type: Number
+    MinValue: 20
+    MaxValue: 65536
+    ConstraintDescription: must be between 20 and 65536 GiB.
+
+  DataWarehouseInstanceID:
+    Default: crypto-warehouse
+    Type: String
+    MinLength: 1
+    MaxLength: 63
+    AllowedPattern: '^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]$'
+    ConstraintDescription: >-
+      Must begin with a letter and must not end with a hyphen or contain two
+      consecutive hyphens.
+
+  AllocatedStorageDataWarehouse:
+    Default: 20
+    Description: The size of the database (GiB)
+    Type: Number
+    MinValue: 20
+    MaxValue: 65536
+    ConstraintDescription: must be between 20 and 65536 GiB.
+
+  DBInstanceClass:
+    Default: db.t4g.micro
+    Description: DB instance class
+    Type: String
+    ConstraintDescription: Must select a valid DB instance type.
 
   EngineVersion:
+    Default: 17.4
+    Description: DB engine version
     Type: String
+    ConstraintDescription: Must select a valid engine version.
 
 Resources:
   StorageStack:
     Type: AWS::CloudFormation::Stack
-    Properties: ./storage.yaml'
-    Parameters:
-      DataLakeBucketName: !Ref DataLakeBucketName
+    Properties: 
+      TemplateURL: templates/storage.yaml
+      Parameters:
+        DataLakeBucketName: !Ref DataLakeBucketName
 
   SecretsStack:
     Type: AWS::CloudFormation::Stack
-    Properties: ./secrets.yaml'
-    Parameters:
-      AirflowDBUsername: !Ref AirflowDBUsername
-      DataWarehouseUsername: !Ref DataWarehouseUsername
+    Properties:
+      TemplateURL: templates/secrets.yaml
+      Parameters:
+        AirflowDBUsername: !Ref AirflowDBUsername
+        DataWarehouseUsername: !Ref DataWarehouseUsername
 
   DatabaseStack:
     Type: AWS::CloudFormation::Stack
-    Properties: ./database.yaml'
-    Parameters:
-      AirflowDBInstanceID: !Ref AirflowDBInstanceID
-      AirflowDBSecretArn: !ImportValue AirflowDBSecret
-      DataWarehouseInstanceID: !Ref DataWarehouseInstanceID
-      DataWarehouseSecretArn: !ImportValue DataWarehouseSecret
-      DBInstanceClass: !Ref DBInstanceClass
-      EngineVersion: !Ref EngineVersion
-
-  NetworkStack:
-    Type: AWS::CloudFormation::Stack
-    Properties: ./network.yaml'
-
-  ComputeStack:
-    Type: AWS::CloudFormation::Stack
-    Properties: ./compute.yaml'
+    Properties:
+      TemplateURL: templates/database.yaml
+      Parameters:
+        AirflowDBInstanceID: !Ref AirflowDBInstanceID
+        AirflowDBSecretArn: !GetAtt SecretsStack.Outputs.AirflowDBSecretArn
+        DataWarehouseInstanceID: !Ref DataWarehouseInstanceID
+        DataWarehouseSecretArn: !GetAtt SecretsStack.Outputs.DataWarehouseSecretArn
+        DBInstanceClass: !Ref DBInstanceClass
+        EngineVersion: !Ref EngineVersion
