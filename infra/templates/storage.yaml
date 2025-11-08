@@ -9,3 +9,9 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Ref DataLakeBucketName
+
+Outputs:
+  DataLakeBucketArn:
+    Value: !Ref DataLakeBucket
+    Export:
+      Name: DataLakeBucketArn
