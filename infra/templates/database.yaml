@@ -111,7 +111,7 @@ Resources:
         AllocatedStorage: !Ref AllocatedStorageDataWarehouse
         Engine: postgres
         EngineVersion: !Ref EngineVersion
-        MasterUsername: !Ref AirflowDBUsername
+        MasterUsername: !Ref DataWarehouseUsername
         MasterUserPassword: !Sub '{{resolve:secretsmanager:${DataWarehouseSecret}:SecretString:password}}'
 
 Outputs:
@@ -119,3 +119,8 @@ Outputs:
     Value: !Ref AirflowDBSecret
     Export:
       Name: AirflowDBSecretArn
+  
+  AirflowMetadataDBEndpoint:
+    Value: !GetAtt AirflowMetadataDB.Endpoint.Address
+    Export:
+      Name: AirflowMetadataDBEndpoint
