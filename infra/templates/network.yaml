@@ -5,7 +5,7 @@ Parameters:
     Type: AWS::EC2::VPC::Id
 
   PublicSubnets:
-    Type: List<AWS::EC2:Subnet::Id>
+    Type: List<AWS::EC2::Subnet::Id>
 
   SecurityGroupDescription:
     Default: Security group for Airflow resources (UI + metadata db access)
