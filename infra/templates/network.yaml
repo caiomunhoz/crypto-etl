@@ -1,0 +1,73 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+
+  PublicSubnets:
+    Type: List<AWS::EC2:Subnet::Id>
+
+  SecurityGroupDescription:
+    Default: Security group for Airflow resources (UI + metadata db access)
+    Type: String
+
+  AirflowLoadBalancerName:
+    Default: airflow-alb
+    Type: String
+  
+  AirflowTargetGroupName:
+    Default: airflow-tg
+    Type: String
+
+Resources:
+  AirflowSecurityGroup:
+    Type: AWS::EC2:SecurityGroup
+    Properties:
+      GroupDescription: !Ref SecurityGroupDescription
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromProtocol: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol:
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 0.0.0.0/0
+  
+  AirflowTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Ref AirflowTargetGroupName
+      Protocol: HTTP
+      Port: 8080
+      VpcId: !Ref VpcId
+      TargetType: ip
+      HealthCheckProtocol: HTTP
+      HealthCheckPath: /
+      Matcher:
+        HttpCode: 200
+
+  AirflowLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Ref AirflowLoadBalancerName
+      Type: application
+      Scheme: internet-facing
+      VpcId: !Ref VpcId
+      Subnets: !Ref PublicSubnets
+      SecurityGroups:
+        - AirflowSecurityGroup
+
+  AirflowListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: AirflowTargetGroup
+
+Outputs:
+  LoadBalancerDNS:
+    Value: AirflowLoadBalancer.DNSName

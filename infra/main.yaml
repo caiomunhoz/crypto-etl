@@ -71,6 +71,24 @@ Parameters:
     Description: DB engine version
     Type: String
     ConstraintDescription: Must select a valid engine version.
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+
+  PublicSubnets:
+    Type: List<AWS::EC2:Subnet::Id>
+
+  SecurityGroupDescription:
+    Default: Security group for Airflow resources (UI + metadata db access)
+    Type: String
+
+  AirflowLoadBalancerName:
+    Default: airflow-alb
+    Type: String
+  
+  AirflowTargetGroupName:
+    Default: airflow-tg
+    Type: String
   
   ECSClusterName:
     Default: crypto-etl-pipeline-cluster
@@ -89,6 +107,7 @@ Parameters:
     Type: String
   
   ECSImageURI:
+    Default: ghcr.io/caiomunhoz/crypto-etl-pipeline:latest
     Type: String
   
   FernetKey:
@@ -121,6 +140,17 @@ Resources:
         DataWarehouseInstanceID: !Ref DataWarehouseInstanceID
         DBInstanceClass: !Ref DBInstanceClass
         EngineVersion: !Ref EngineVersion
+
+  NetworkStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: templates/network.yaml
+      Parameters:
+        VpcId: !Ref VpcId
+        PublicSubnets: !Ref PublicSubnets
+        SecurityGroupDescription: !Ref SecurityGroupDescription
+        AirflowLoadBalancerName: !Ref AirflowLoadBalancerName
+        AirflowTargetGroupName: !Ref AirflowTargetGroupName
 
   ComputeStack:
     Type: AWS::CloudFormation::Stack
