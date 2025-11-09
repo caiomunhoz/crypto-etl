@@ -71,6 +71,29 @@ Parameters:
     Description: DB engine version
     Type: String
     ConstraintDescription: Must select a valid engine version.
+  
+  ECSClusterName:
+    Default: crypto-etl-pipeline-cluster
+    Type: String
+
+  ECSTaskDefinitionFamily:
+    Default: crypto-etl-pipeline
+    Type: String
+  
+  ECSCpu:
+    Default: 1024 # 1 vCPU
+    Type: String
+
+  ECSMemory:
+    Default: 3072 # 3 GB
+    Type: String
+  
+  ECSImageURI:
+    Type: String
+  
+  FernetKey:
+    Type: String
+    NoEcho: true
 
 Resources:
   StorageStack:
@@ -80,22 +103,38 @@ Resources:
       Parameters:
         DataLakeBucketName: !Ref DataLakeBucketName
 
-  SecretsStack:
+  IAMRolesStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: templates/secrets.yaml
+      TemplateURL: templates/iam_roles.yaml
       Parameters:
-        AirflowDBUsername: !Ref AirflowDBUsername
-        DataWarehouseUsername: !Ref DataWarehouseUsername
+        DataLakeBucketArn: !GetAtt StorageStack.Outputs.DataLakeBucketArn
 
   DatabaseStack:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: templates/database.yaml
       Parameters:
+        AirflowDBUsername: !Ref AirflowDBUsername
+        DataWarehouseUsername: !Ref DataWarehouseUsername
         AirflowDBInstanceID: !Ref AirflowDBInstanceID
-        AirflowDBSecretArn: !GetAtt SecretsStack.Outputs.AirflowDBSecretArn
         DataWarehouseInstanceID: !Ref DataWarehouseInstanceID
-        DataWarehouseSecretArn: !GetAtt SecretsStack.Outputs.DataWarehouseSecretArn
         DBInstanceClass: !Ref DBInstanceClass
         EngineVersion: !Ref EngineVersion
+
+  ComputeStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: templates/compute.yaml
+      Parameters:
+        AirflowDBSecretArn: !GetAtt DatabaseStack.Outputs.AirflowDBSecretArn
+        AirflowDBEndpoint: !GetAtt DatabaseStack.Outputs.AirflowMetadataDBEndpoint
+        ClusterName: !Ref ECSClusterName
+        TaskDefinitionFamily: !Ref ECSTaskDefinitionFamily
+        Cpu: !Ref ECSCpu
+        Memory: !Ref ECSMemory
+        ExecutionRoleArn: !GetAtt IAMRolesStack.Outputs.ECSTaskExecutionRoleArn
+        TaskRoleArn: !GetAtt IAMRolesStack.Outputs.ECSTaskRoleArn
+        ImageURI: !Ref ECSImageURI
+        DataLakeBucketName: !Ref DataLakeBucketName
+        FernetKey: !Ref FernetKey
