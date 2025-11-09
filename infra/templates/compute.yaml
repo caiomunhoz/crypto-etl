@@ -33,6 +33,7 @@ Parameters:
     Type: String
   
   ImageURI:
+    Default: ghcr.io/caiomunhoz/crypto-etl-pipeline:latest
     Type: String
   
   DataLakeBucketName:
