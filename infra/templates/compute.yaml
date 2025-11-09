@@ -42,6 +42,9 @@ Parameters:
   FernetKey:
     Type: String
     NoEcho: true
+  
+  LoadBalancerDNS:
+    Type: String
 
 Resources:
   AirflowSecrets:
@@ -84,6 +87,12 @@ Resources:
           Environment:
             - Name: AIRFLOW__CORE__EXECUTOR
               Value: LocalExecutor
+            - Name: AIRFLOW__LOGGING__HOSTNAME_CALLABLE
+              Value: socket.gethostname
+            - Name: AIRFLOW__API__BASE__URL
+              Value: !Ref LoadBalancerDNS
+            - Name: AIRFLOW__LOGGING__BASE_URL
+              Value: !Ref LoadBalancerDNS
             - Name: AIRFLOW_VAR_BUCKET_NAME
               Value: !Ref DataLakeBucketName
             - Name: AIRFLOW_VAR_COINGECKO_ENDPOINT

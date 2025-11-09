@@ -168,3 +168,4 @@ Resources:
         ImageURI: !Ref ECSImageURI
         DataLakeBucketName: !Ref DataLakeBucketName
         FernetKey: !Ref FernetKey
+        LoadBalancerDNS: !GetAtt NetworkStack.Outputs.LoadBalancerDNS
