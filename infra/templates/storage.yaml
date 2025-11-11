@@ -12,6 +12,6 @@ Resources:
 
 Outputs:
   DataLakeBucketArn:
-    Value: !Ref DataLakeBucket
+    Value: !GetAtt DataLakeBucket.Arn
     Export:
       Name: DataLakeBucketArn
