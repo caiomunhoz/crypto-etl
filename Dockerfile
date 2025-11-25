@@ -1,4 +1,4 @@
-FROM apache/airflow:3.1.2-python3.13
+FROM apache/airflow:3.0.6-python3.12
 
 USER airflow
 
