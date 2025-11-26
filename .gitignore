@@ -26,4 +26,4 @@ plugins/__pycache__
 # UV
 uv.lock
 
-infra/packaged.yaml
+infra/cloudformation/packaged.yaml
