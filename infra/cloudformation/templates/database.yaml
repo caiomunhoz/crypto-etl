@@ -1,0 +1,126 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  AirflowDBUsername:
+    Default: airflow
+    Type: String
+    MinLength: 1
+    MaxLength: 64
+    AllowedPattern: '^[a-zA-Z_][a-zA-Z0-9_]*$'
+    ConstraintDescription: >- 
+      Must begin with a letter or underscore and contain only letters, 
+      numbers, or underscores.
+
+  DataWarehouseUsername:
+    Default: crypto_warehouse
+    Type: String
+    MinLength: 1
+    MaxLength: 64
+    AllowedPattern: '^[a-zA-Z_][a-zA-Z0-9_]*$'
+    ConstraintDescription: >- 
+      Must begin with a letter or underscore and contain only letters, 
+      numbers, or underscores.
+
+  AirflowDBInstanceID:
+    Default: airflow-metadata-db
+    Type: String
+    MinLength: 1
+    MaxLength: 63
+    AllowedPattern: '^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]$'
+    ConstraintDescription: >-
+      Must begin with a letter and must not end with a hyphen or contain two
+      consecutive hyphens.
+  
+  AllocatedStorageAirflowDB:
+    Default: 20
+    Description: The size of the database (GiB)
+    Type: Number
+    MinValue: 20
+    MaxValue: 65536
+    ConstraintDescription: must be between 20 and 65536 GiB.
+
+  DataWarehouseInstanceID:
+    Default: crypto-warehouse
+    Type: String
+    MinLength: 1
+    MaxLength: 63
+    AllowedPattern: '^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]$'
+    ConstraintDescription: >-
+      Must begin with a letter and must not end with a hyphen or contain two
+      consecutive hyphens.
+
+  AllocatedStorageDataWarehouse:
+    Default: 20
+    Description: The size of the database (GiB)
+    Type: Number
+    MinValue: 20
+    MaxValue: 65536
+    ConstraintDescription: must be between 20 and 65536 GiB.
+
+  DBInstanceClass:
+    Default: db.t4g.micro
+    Description: DB instance class
+    Type: String
+    ConstraintDescription: Must select a valid DB instance type.
+
+  EngineVersion:
+    Default: 17.4
+    Description: DB engine version
+    Type: String
+    ConstraintDescription: Must select a valid engine version.
+
+Resources:
+  AirflowDBSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: airflow/metadata-db-credential
+      GenerateSecretString:
+        SecretStringTemplate: !Sub '{"username": "${AirflowDBUsername}"}'
+        GenerateStringKey: password
+        PasswordLength: 30
+        ExcludePunctuation: true
+        RequireEachIncludedType: true
+
+  DataWarehouseSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: data-warehouse-credential
+      GenerateSecretString:
+        SecretStringTemplate: !Sub '{"username": "${DataWarehouseUsername}"}'
+        GenerateStringKey: password
+        PasswordLength: 30
+        ExcludePunctuation: true
+        RequireEachIncludedType: true
+
+  AirflowMetadataDB:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: !Ref AirflowDBInstanceID
+      DBInstanceClass: !Ref DBInstanceClass
+      AllocatedStorage: !Ref AllocatedStorageAirflowDB
+      Engine: postgres
+      EngineVersion: !Ref EngineVersion
+      MasterUsername: !Ref AirflowDBUsername
+      MasterUserPassword: !Sub '{{resolve:secretsmanager:${AirflowDBSecret}:SecretString:password}}'
+
+  DataWarehouse:
+    Type: AWS::RDS::DBInstance
+    Properties:
+        DBInstanceIdentifier: !Ref DataWarehouseInstanceID
+        DBInstanceClass: !Ref DBInstanceClass
+        AllocatedStorage: !Ref AllocatedStorageDataWarehouse
+        Engine: postgres
+        EngineVersion: !Ref EngineVersion
+        MasterUsername: !Ref DataWarehouseUsername
+        MasterUserPassword: !Sub '{{resolve:secretsmanager:${DataWarehouseSecret}:SecretString:password}}'
+
+Outputs:
+  AirflowDBSecretArn:
+    Value: !Ref AirflowDBSecret
+    Export:
+      Name: AirflowDBSecretArn
+  
+  AirflowMetadataDBEndpoint:
+    Value: !GetAtt AirflowMetadataDB.Endpoint.Address
+    Export:
+      Name: AirflowMetadataDBEndpoint

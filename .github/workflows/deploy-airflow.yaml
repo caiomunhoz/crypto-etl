@@ -1,0 +1,119 @@
+name: Deploy Airflow
+
+on:
+  workflow_dispatch:
+    inputs: 
+      aws-region:
+        required: true
+        default: us-east-1
+      
+      vpc-id:
+        required: true
+      
+      subnets-mapping:
+        required: true
+
+      templates-bucket-name:
+        required: true
+
+      data-lake-bucket-name:
+        required: true
+
+env:
+  AWS_REGION: ${{ github.event.inputs.aws-region }}
+  VPC_ID: ${{ github.event.inputs.vpc-id }}
+  SUBNETS_MAPPING: ${{ github.event.inputs.subnets-mapping }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v5.1.1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+      
+      - name: Setup Helm
+        uses: azure/setup-helm@v4.3.0
+
+      - name: Install eksctl
+        run: |
+          curl -sLO "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_$PLATFORM.tar.gz" | tar xz
+          sudo mv eksctl /usr/local/bin
+      
+      - name: Deploy CloudFormation resources
+        run: |
+          aws cloudformation package \
+            --template-file infra/cloudformation/main.yaml \
+            --output-template-file infra/cloudformation/packaged.yaml \
+            --s3-bucket ${{ github.event.inputs.templates-bucket-name }}
+          
+          aws cloudformation deploy \
+            --template-file infra/cloudformation/packaged.yaml \
+            --stack-name crypto-etl-pipeline \
+            --parameter-overrides DataLakeBucketName=${{ github.event.inputs.data-lake-bucket-name }} \
+            --capabilities CAPABILITY_NAMED_IAM
+          
+          DATA_LAKE_BUCKET_ACCESS_POLICY_ARN=$(aws cloudformation describe-stacks \
+          --stack-name crypto-etl-pipeline \
+          --query "Stacks[0].Outputs[?OutputKey=='DataLakeBucketAccessPolicyArn'].OutputValue" \
+          --output text)
+
+          AIRFLOW_SECRETS_ACCESS_POLICY_ARN=$(aws cloudformation describe-stacks \
+          --stack-name crypto-etl-pipeline \
+          --query "Stacks[0].Outputs[?OutputKey=='AirflowSecretsAccessPolicyArn'].OutputValue" \
+          --output text)
+
+          LOAD_BALANCER_CONTROLLER_IAM_POLICY_ARN=$(aws cloudformation describe-stacks \
+          --stack-name crypto-etl-pipeline \
+          --query "Stacks[0].Outputs[?OutputKey=='LoadBalancerControllerIAMPolicyArn'].OutputValue" \
+          --output text)
+
+          echo "DATA_LAKE_BUCKET_ACCESS_POLICY_ARN=$DATA_LAKE_BUCKET_ACCESS_POLICY_ARN" >> $GITHUB_ENV
+          echo "AIRFLOW_SECRETS_ACCESS_POLICY_ARN=$AIRFLOW_SECRETS_ACCESS_POLICY_ARN" >> $GITHUB_ENV
+          echo "LOAD_BALANCER_CONTROLLER_IAM_POLICY_ARN=$LOAD_BALANCER_CONTROLLER_IAM_POLICY_ARN" >> $GITHUB_ENV
+      
+      - name: Deploy EKS cluster
+        run: |
+          cat infra/eksctl/templates/cluster.yaml | envsubst > infra/eksctl/cluster-config.yaml
+
+          eksctl create cluster -f infra/eksctl/cluster-config.yaml
+
+          eksctl utils associate-iam-oidc-provider --region $AWS_REGION --cluster airflow-cluster --approve
+
+          eksctl create iamserviceaccount --approve \
+            --cluster airflow-cluster \
+            --name aws-load-balancer-controller \
+            --role-name AmazonEKSLoadBalancerControllerRole \
+            --attach-policy-arn $LOAD_BALANCER_CONTROLLER_IAM_POLICY_ARN
+      
+      - name: Install AWS Load Balancer Controller
+        run: |
+          helm repo add eks https://aws.github.io/eks-charts
+
+          helm repo update eks
+
+          helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
+            --set clusterName=airflow-cluster \
+            --set serviceAccount.create=false \
+            --set serviceAccount.name=aws-load-balancer-controller
+      
+      - name: Install Apache Airflow
+        run: |
+          helm repo add apache-airflow https://airflow.apache.org
+
+          helm repo update apache-airflow
+
+          helm install airflow apache-airflow/airflow \
+            -f charts/airflow-values.yaml \
+            --set extraEnv[0].name=AWS_DEFAULT_REGION \
+            --set extraEnv[0].value=$AWS_REGION \
+            --timeout 20m

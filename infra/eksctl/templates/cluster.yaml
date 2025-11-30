@@ -1,0 +1,23 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: airflow-cluster
+  region: $AWS_REGION
+  version: 1.34
+
+vpc:
+  id: $VPC_ID
+  subnets:
+    $SUBNETS_MAPPING
+
+nodeGroups:
+  - name: airflow-nodes
+    instanceType: c7i-flex.large
+    desiredCapacity: 1
+    minSize: 0
+    maxSize: 1
+    iam:
+      attachPolicyARNs:
+        - $DATA_LAKE_BUCKET_ACCESS_POLICY_ARN
+        - $AIRFLOW_SECRETS_ACCESS_POLICY_ARN

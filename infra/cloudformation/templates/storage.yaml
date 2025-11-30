@@ -1,0 +1,17 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  DataLakeBucketName:
+    Type: String
+
+Resources:
+  DataLakeBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref DataLakeBucketName
+
+Outputs:
+  DataLakeBucketArn:
+    Value: !GetAtt DataLakeBucket.Arn
+    Export:
+      Name: DataLakeBucketArn
