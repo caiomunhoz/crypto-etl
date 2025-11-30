@@ -69,14 +69,11 @@ Parameters:
     Type: String
     ConstraintDescription: Must select a valid engine version.
 
-  # SecurityGroup:
-  #   Type: String
-
 Resources:
   AirflowDBSecret:
     Type: AWS::SecretsManager::Secret
     Properties:
-      Name: airflow/metadata-db-credencial
+      Name: airflow/metadata-db-credential
       GenerateSecretString:
         SecretStringTemplate: !Sub '{"username": "${AirflowDBUsername}"}'
         GenerateStringKey: password
@@ -105,8 +102,6 @@ Resources:
       EngineVersion: !Ref EngineVersion
       MasterUsername: !Ref AirflowDBUsername
       MasterUserPassword: !Sub '{{resolve:secretsmanager:${AirflowDBSecret}:SecretString:password}}'
-      # DBSecurityGroups:
-      #   - !Ref SecurityGroup
 
   DataWarehouse:
     Type: AWS::RDS::DBInstance

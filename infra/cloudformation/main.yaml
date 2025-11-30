@@ -72,60 +72,6 @@ Parameters:
     Type: String
     ConstraintDescription: Must select a valid engine version.
 
-  VpcId:
-    Type: String
-
-  PublicSubnets:
-    Type: String
-
-  SecurityGroupDescription:
-    Default: Security group for Airflow resources (UI + metadata db access)
-    Type: String
-
-  AirflowLoadBalancerName:
-    Default: airflow-alb
-    Type: String
-  
-  AirflowTargetGroupName:
-    Default: airflow-tg
-    Type: String
-  
-  ECSClusterName:
-    Default: crypto-etl-pipeline-cluster
-    Type: String
-
-  ECSTaskDefinitionFamily:
-    Default: crypto-etl-pipeline
-    Type: String
-  
-  ECSCpu:
-    Default: 1024 # 1 vCPU
-    Type: String
-
-  ECSMemory:
-    Default: 3072 # 3 GB
-    Type: String
-  
-  ECSApplicationName:
-    Default: crypto-etl-pipeline
-    Type: String
-
-  ECSImageURI:
-    Default: ghcr.io/caiomunhoz/crypto-etl-pipeline:latest
-    Type: String
-  
-  FernetKey:
-    Type: String
-    NoEcho: true
-  
-  ECSServiceName:
-    Default: crypto-etl-pipeline-service
-    Type: String
-
-  ECSServiceDesiredCount:
-    Default: 1
-    Type: Number
-
 Resources:
   StorageStack:
     Type: AWS::CloudFormation::Stack
@@ -134,16 +80,12 @@ Resources:
       Parameters:
         DataLakeBucketName: !Ref DataLakeBucketName
 
-  NetworkStack:
+  PoliciesStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: templates/network.yaml
+      TemplateURL: templates/policies.yaml
       Parameters:
-        VpcId: !Ref VpcId
-        PublicSubnets: !Ref PublicSubnets
-        SecurityGroupDescription: !Ref SecurityGroupDescription
-        AirflowLoadBalancerName: !Ref AirflowLoadBalancerName
-        AirflowTargetGroupName: !Ref AirflowTargetGroupName
+        DataLakeBucketArn: !GetAtt StorageStack.Outputs.DataLakeBucketArn
 
   DatabaseStack:
     Type: AWS::CloudFormation::Stack
@@ -158,27 +100,3 @@ Resources:
         AllocatedStorageDataWarehouse: !Ref AllocatedStorageDataWarehouse
         DBInstanceClass: !Ref DBInstanceClass
         EngineVersion: !Ref EngineVersion
-        SecurityGroup: !GetAtt NetworkStack.Outputs.AirflowMetadataDBSecurityGroup
-
-  ComputeStack:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: templates/compute.yaml
-      Parameters:
-        DataLakeBucketArn: !GetAtt StorageStack.Outputs.DataLakeBucketArn
-        AirflowDBSecretArn: !GetAtt DatabaseStack.Outputs.AirflowDBSecretArn
-        AirflowDBEndpoint: !GetAtt DatabaseStack.Outputs.AirflowMetadataDBEndpoint
-        ClusterName: !Ref ECSClusterName
-        TaskDefinitionFamily: !Ref ECSTaskDefinitionFamily
-        Cpu: !Ref ECSCpu
-        Memory: !Ref ECSMemory
-        ApplicationName: !Ref ECSApplicationName
-        ImageURI: !Ref ECSImageURI
-        DataLakeBucketName: !Ref DataLakeBucketName
-        FernetKey: !Ref FernetKey
-        LoadBalancerDNS: !GetAtt NetworkStack.Outputs.LoadBalancerDNS
-        ServiceName: !Ref ECSServiceName
-        ServiceDesiredCount: !Ref ECSServiceDesiredCount
-        Subnets: !Ref PublicSubnets
-        AirflowSecurityGroup: !GetAtt NetworkStack.Outputs.AirflowSecurityGroup
-        AirflowTargetGroupArn: !GetAtt NetworkStack.Outputs.AirflowTargetGroupArn
