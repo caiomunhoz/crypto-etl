@@ -40,10 +40,10 @@ Resources:
                 - secret
                 - airflow/*
 
-  AWSLoadBalancerControllerIAMPolicy:
+  LoadBalancerControllerIAMPolicy:
     Type: AWS::IAM::ManagedPolicy
     Properties:
-      ManagedPolicyName: AWSLoadBalancerControllerIAMPolicy
+      ManagedPolicyName: LoadBalancerControllerIAMPolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -218,3 +218,19 @@ Resources:
               - elasticloadbalancing:RemoveListenerCertificates
               - elasticloadbalancing:ModifyRule
             Resource: '*'
+
+Outputs:
+  DataLakeBucketAccessPolicyArn:
+    Value: !Ref DataLakeBucketAccessPolicy
+    Export:
+      Name: DataLakeBucketAccessPolicyArn
+  
+  AirflowSecretsAccessPolicyArn:
+    Value: !Ref AirflowSecretsAccessPolicy
+    Export:
+      Name: AirflowSecretsAccessPolicyArn
+  
+  LoadBalancerControllerIAMPolicyArn:
+    Value: !Ref LoadBalancerControllerIAMPolicy
+    Export:
+      Name: LoadBalancerControllerIAMPolicyArn
