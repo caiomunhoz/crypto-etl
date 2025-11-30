@@ -4,6 +4,10 @@ Parameters:
   DataLakeBucketName:
     Type: String
 
+  FernetKey:
+    Type: String
+    NoEcho: true
+
   AirflowDBUsername:
     Default: airflow
     Type: String
@@ -100,3 +104,13 @@ Resources:
         AllocatedStorageDataWarehouse: !Ref AllocatedStorageDataWarehouse
         DBInstanceClass: !Ref DBInstanceClass
         EngineVersion: !Ref EngineVersion
+  
+  SecretsStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: templates/secrets.yaml
+      Parameters:
+        AirflowDBUsername: !Ref AirflowDBUsername
+        AirflowDBPassword: !Sub '{{resolve:secretsmanager:${DatabaseStack.Outputs.AirflowDBSecretArn}:SecretString:password}}'
+        AirflowDBHost: !GetAtt DatabaseStack.Outputs.AirflowMetadataDBEndpoint
+        FernetKey: !Ref FernetKey
