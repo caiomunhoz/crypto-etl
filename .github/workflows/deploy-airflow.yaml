@@ -59,8 +59,7 @@ jobs:
           aws cloudformation deploy \
             --template-file infra/cloudformation/packaged.yaml \
             --stack-name crypto-etl-pipeline \
-            --parameter-overrides DataLakeBucketName=${{ github.event.inputs.data-lake-bucket-name }} \
-              FernetKey=${{ secrets.FERNET_KEY }}
+            --parameter-overrides DataLakeBucketName=${{ github.event.inputs.data-lake-bucket-name }} FernetKey=${{ secrets.FERNET_KEY }} \
             --capabilities CAPABILITY_NAMED_IAM
           
           DATA_LAKE_BUCKET_ACCESS_POLICY_ARN=$(aws cloudformation describe-stacks \
